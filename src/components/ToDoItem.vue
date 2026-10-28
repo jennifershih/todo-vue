@@ -1,87 +1,45 @@
-<template>
-  <div class="stack-small" v-if="!isEditing">
-    <div class="custom-checkbox">
-      <input
-        type="checkbox"
-        class="checkbox"
-        :id="id"
-        :checked="isDone"
-        @change="$emit('checkbox-changed')"
-      />
-      <label :for="id" class="checkbox-label"> {{label}} </label>
-    </div>
+<script setup lang="ts">
+import { nextTick, ref, useTemplateRef } from 'vue'
+import ToDoItemEditForm from './ToDoItemEditForm.vue'
 
-    <div class="btn-group">
-      <button type="button" class="btn" ref="editButton" @click="toggleToItemEditForm">
-        Edit
-        <span class="visually-hidden">{{label}}</span>
-      </button>
-      <button type="button" class="btn btn__danger" @click="deleteToDo">
-        Delete
-        <span class="visually-hidden">{{label}}</span>
-      </button>
-    </div>
-  </div>
-  <to-do-item-edit-form
-    v-else
-    :id="id"
-    :label="label"
-    @item-edited="itemEdited"
-    @edit-cancelled="editCancelled">
-  </to-do-item-edit-form>
-</template>
+defineProps<{ id: string; label: string; done: boolean }>()
+const emit = defineEmits<{ toggled: []; deleted: []; edited: [label: string] }>()
 
-<script>
-import ToDoItemEditForm from "./ToDoItemEditForm";
+const isEditing = ref(false)
+const editButton = useTemplateRef<HTMLButtonElement>('editButton')
 
-export default {
-  components:{
-    ToDoItemEditForm
-  },
-  props:{
-    label:{ required: true, type: String },
-    done:{ default: false, type: Boolean },
-    id:{ required: true, type: String }
-  },
-  data(){
-    return{
-      isEditing: false
-    }
-  },
-  computed:{
-    isDone() {
-    return this.done;
-    }
-  },
-  methods:{
-    deleteToDo() {
-      this.$emit('item-deleted');
-    },
-    toggleToItemEditForm() {
-      console.log(this.$refs.editButton);
-      this.isEditing = true;
-    },
-    itemEdited(newItemName) {
-      this.$emit('item-edited', newItemName);
-      this.isEditing = false;
-      this.focusOnEditButton();
-    },
-    editCancelled() {
-      this.isEditing = false;
-      this.focusOnEditButton();
-    },
-    focusOnEditButton() {
-      this.$nextTick(() => {
-        const editButtonRef = this.$refs.editButton;
-        editButtonRef.focus();
-      }) 
-    }
-  }
+async function closeEditor() {
+  isEditing.value = false
+  await nextTick()
+  editButton.value?.focus()
+}
+
+function onEdited(label: string) {
+  emit('edited', label)
+  void closeEditor()
 }
 </script>
 
+<template>
+  <div v-if="!isEditing" class="stack-small">
+    <div class="custom-checkbox">
+      <input :id="id" type="checkbox" class="checkbox" :checked="done" @change="emit('toggled')" />
+      <label :for="id" class="checkbox-label">{{ label }}</label>
+    </div>
+    <div class="btn-group">
+      <button ref="editButton" type="button" class="btn" @click="isEditing = true">
+        Edit <span class="visually-hidden">{{ label }}</span>
+      </button>
+      <button type="button" class="btn btn__danger" @click="emit('deleted')">
+        Delete <span class="visually-hidden">{{ label }}</span>
+      </button>
+    </div>
+  </div>
+  <ToDoItemEditForm v-else :id="id" :label="label" @edited="onEdited" @cancelled="closeEditor" />
+</template>
+
 <style scoped>
-  .custom-checkbox > .checkbox-label {
+.custom-checkbox > .checkbox-label {
   font-family: Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -131,7 +89,7 @@ export default {
   padding-left: 40px;
   clear: left;
 }
-.custom-checkbox > input[type="checkbox"] {
+.custom-checkbox > input[type='checkbox'] {
   -webkit-font-smoothing: antialiased;
   cursor: pointer;
   position: absolute;
@@ -154,7 +112,7 @@ export default {
   touch-action: manipulation;
 }
 .custom-checkbox > label::before {
-  content: "";
+  content: '';
   box-sizing: border-box;
   position: absolute;
   top: 0;
@@ -164,13 +122,13 @@ export default {
   border: 2px solid currentColor;
   background: transparent;
 }
-.custom-checkbox > input[type="checkbox"]:focus + label::before {
+.custom-checkbox > input[type='checkbox']:focus + label::before {
   border-width: 4px;
   outline: 3px dashed #228bec;
 }
 .custom-checkbox > label::after {
   box-sizing: content-box;
-  content: "";
+  content: '';
   position: absolute;
   top: 11px;
   left: 9px;
@@ -183,7 +141,7 @@ export default {
   opacity: 0;
   background: transparent;
 }
-.custom-checkbox > input[type="checkbox"]:checked + label::after {
+.custom-checkbox > input[type='checkbox']:checked + label::after {
   opacity: 1;
 }
 @media only screen and (min-width: 40rem) {
